@@ -1,5 +1,8 @@
 import React from 'react';
 import { View, Text, Button } from 'react-native';
+import { db } from '../config/firebaseConfig';
+import { collection, addDoc } from "firebase/firestore";
+
 
 export default function HomeScreen({ navigation }) {
   return (
