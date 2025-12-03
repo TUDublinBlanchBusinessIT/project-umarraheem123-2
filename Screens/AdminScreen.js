@@ -1,79 +1,125 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TextInput, Button, FlatList, TouchableOpacity } from 'react-native';
 import { db } from '../config/firebaseConfig';
-import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
-import * as Progress from "react-native-progress";
+import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore";
 
 export default function AdminScreen() {
-
-  const [occupancy, setOccupancy] = useState(0);
-  const [showWarning, setShowWarning] = useState(false);
-
-  const capacity = 80; // 🔥 Set your max capacity here
+  const [name, setName] = useState("");
+  const [capacity, setCapacity] = useState("");
+  const [notes, setNotes] = useState("");
+  const [venues, setVenues] = useState([]);
+  const [selectedVenue, setSelectedVenue] = useState(null);
 
   useEffect(() => {
-    loadOccupancy();
+    loadVenues();
   }, []);
 
-  async function loadOccupancy() {
-    const venueId = "gym1";
-
-    try {
-      const q = query(
-        collection(db, "checkins"),
-        where("venueId", "==", venueId),
-        orderBy("timestamp", "desc")
-      );
-
-      const snapshot = await getDocs(q);
-      const events = snapshot.docs.map(doc => doc.data());
-
-      let countIn = 0;
-      let countOut = 0;
-
-      events.forEach(e => {
-        if (e.type === "in") countIn++;
-        if (e.type === "out") countOut++;
-      });
-
-      const occ = countIn - countOut;
-      setOccupancy(occ);
-
-      if (occ >= capacity) setShowWarning(true);
-      else setShowWarning(false);
-
-    } catch (err) {
-      console.log("Error loading occupancy:", err);
-    }
+  async function loadVenues() {
+    const snap = await getDocs(collection(db, "venues"));
+    const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setVenues(list);
   }
 
-  const percentage = (occupancy / capacity);
+  async function createVenue() {
+    if (!name || !capacity) return;
+
+    await addDoc(collection(db, "venues"), {
+      name,
+      capacity: Number(capacity),
+      accessibilityNotes: notes,
+      createdAt: new Date()
+    });
+
+    setName("");
+    setCapacity("");
+    setNotes("");
+
+    loadVenues();
+  }
+
+  async function updateCapacity() {
+    if (!selectedVenue) return;
+
+    const ref = doc(db, "venues", selectedVenue.id);
+
+    await updateDoc(ref, {
+      capacity: Number(capacity)
+    });
+
+    loadVenues();
+  }
+
+  const renderVenue = ({ item }) => (
+    <TouchableOpacity
+      onPress={() => {
+        setSelectedVenue(item);
+        setCapacity(String(item.capacity));
+      }}
+      style={{
+        padding: 12,
+        borderBottomWidth: 1,
+        borderColor: "#ccc",
+        backgroundColor: selectedVenue?.id === item.id ? "#e6f0ff" : "white"
+      }}
+    >
+      <Text style={{ fontWeight: "bold" }}>{item.name}</Text>
+      <Text>Capacity: {item.capacity}</Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={{ flex: 1, padding: 20 }}>
+      <Text style={{ fontSize: 24, marginBottom: 10 }}>Create Venue</Text>
 
-      <Text style={{ fontSize: 32, marginBottom: 10 }}>
-        Current Occupancy
-      </Text>
-
-      {/* Big progress bar */}
-      <Progress.Bar 
-        progress={percentage}
-        width={250}
-        height={30}
-        color={percentage >= 1 ? "red" : "green"}
+      <TextInput
+        placeholder="Venue name"
+        value={name}
+        onChangeText={setName}
+        style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
       />
 
-      <Text style={{ fontSize: 22, marginTop: 20 }}>
-        {occupancy} / {capacity}
-      </Text>
+      <TextInput
+        placeholder="Capacity"
+        value={capacity}
+        onChangeText={setCapacity}
+        keyboardType="numeric"
+        style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
+      />
 
-      {showWarning && (
-        <Text style={{ color: "red", fontSize: 20, marginTop: 10 }}>
-          ⚠ Venue at full capacity!
-        </Text>
+      <TextInput
+        placeholder="Accessibility notes (optional)"
+        value={notes}
+        onChangeText={setNotes}
+        style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
+      />
+
+      <Button title="Create Venue" onPress={createVenue} />
+
+      <Text style={{ fontSize: 24, marginVertical: 20 }}>Select Venue</Text>
+
+      <FlatList
+        data={venues}
+        keyExtractor={(item) => item.id}
+        renderItem={renderVenue}
+      />
+
+      {selectedVenue && (
+        <View style={{ marginTop: 20 }}>
+          <Text style={{ fontSize: 20, marginBottom: 10 }}>
+            Edit Capacity for {selectedVenue.name}
+          </Text>
+
+          <TextInput
+            placeholder="New capacity"
+            value={capacity}
+            onChangeText={setCapacity}
+            keyboardType="numeric"
+            style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
+          />
+
+          <Button title="Update Capacity" onPress={updateCapacity} />
+        </View>
       )}
-
     </View>
   );
 }
