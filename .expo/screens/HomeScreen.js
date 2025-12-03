@@ -11,7 +11,7 @@ export default function HomeScreen({ navigation }) {
 
       <Button title="Go to Check-In" onPress={() => navigation.navigate('Checkin')} />
       <Button title="Go to History" onPress={() => navigation.navigate('History')} />
-      <Button title="Go to New" onPress={() => navigation.navigate('New')} />
+      <Button title="Go to Admin" onPress={() => navigation.navigate('Admin')} />
     </View>
   );
 }
