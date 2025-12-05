@@ -1,39 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Button, Alert } from 'react-native';
+import React, { useState, useEffect } from "react";
+import { View, Text, Button, Alert } from "react-native";
 import { serverTimestamp } from "firebase/firestore";
-import { addCheckin, getCheckinsByVenue } from "../services/firebaseService";
+import { addCheckin, getCheckins } from "../services/firebaseService";
 
 export default function CheckInScreen() {
-
-  const venueId = "gym1"; 
-  const [occupancy, setOccupancy] = useState(0); 
+  const venueId = "gym1";
+  const [occupancy, setOccupancy] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const loadCheckins = async () => {
+  async function loadOccupancy() {
     try {
-      const data = await getCheckinsByVenue(venueId);
-      console.log("Loaded check-ins:", data);
+      const events = await getCheckins(venueId);
 
-      
       let count = 0;
-      data.forEach(item => {
-        if (item.type === "in") count++;
-        if (item.type === "out") count--;
+      events.forEach(e => {
+        if (e.type === "in") count++;
+        if (e.type === "out") count--;
       });
 
       setOccupancy(count);
     } catch (error) {
-      console.log("Error loading check-ins:", error);
+      console.log("Error loading:", error);
     }
-  };
+  }
 
   useEffect(() => {
-    loadCheckins();
+    loadOccupancy();
   }, []);
 
   async function handleCheck(type) {
     if (loading) return;
-
     setLoading(true);
 
     const change = type === "in" ? 1 : -1;
@@ -44,44 +40,38 @@ export default function CheckInScreen() {
         venueId,
         type,
         timestamp: serverTimestamp(),
-        method: "manual"
+        method: "manual",
       });
 
-      console.log("Saved with ID:", docRef.id);
-      Alert.alert("Success", `Checked ${type}!`);
-
+      console.log("Saved:", docRef.id);
+      Alert.alert("Success", `Checked ${type}`);
     } catch (error) {
-      console.error("Error saving check-in:", error);
-
       setOccupancy(prev => prev - change);
-
-      Alert.alert("Error", "Failed to save check-in. Try again.");
+      Alert.alert("Error", "Failed to save");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text style={{ fontSize: 30, marginBottom: 20 }}>
         Current Occupancy: {occupancy}
       </Text>
 
-      <Button 
-        title={loading ? "Saving..." : "CHECK IN"} 
+      <Button
+        title={loading ? "Saving..." : "CHECK IN"}
         onPress={() => handleCheck("in")}
         disabled={loading}
       />
 
       <View style={{ height: 20 }} />
 
-      <Button 
-        title={loading ? "Saving..." : "CHECK OUT"} 
+      <Button
+        title={loading ? "Saving..." : "CHECK OUT"}
         onPress={() => handleCheck("out")}
         disabled={loading}
       />
-
     </View>
   );
 }

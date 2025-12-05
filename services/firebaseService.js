@@ -15,13 +15,13 @@ import {
 export async function addCheckin({ venueId, type, timestamp, method }) {
   return await addDoc(collection(db, "checkins"), {
     venueId,
-    type,       
+    type,
     timestamp,
-    method     
+    method
   });
 }
 
-export async function getCheckins(venueId, options = {}) {
+export async function getCheckins(venueId) {
   const ref = collection(db, "checkins");
 
   const q = query(
@@ -31,7 +31,10 @@ export async function getCheckins(venueId, options = {}) {
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
 }
 
 export async function getVenue(venueId) {
