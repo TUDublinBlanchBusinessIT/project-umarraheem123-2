@@ -1,7 +1,15 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs
+} from "firebase/firestore";
+
 import { db } from '../config/firebaseConfig';
-import { collection, addDoc } from "firebase/firestore";
 
 export default function HistoryScreen() {
   return (
