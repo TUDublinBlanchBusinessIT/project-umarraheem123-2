@@ -1,14 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, FlatList, TouchableOpacity } from 'react-native';
 import { db } from '../config/firebaseConfig';
-import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore";
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  updateDoc, 
+  doc,
+  query,
+  where,
+  orderBy
+} from "firebase/firestore";
+import * as Progress from "react-native-progress";
 
 export default function AdminScreen() {
+
   const [name, setName] = useState("");
   const [capacity, setCapacity] = useState("");
   const [notes, setNotes] = useState("");
   const [venues, setVenues] = useState([]);
   const [selectedVenue, setSelectedVenue] = useState(null);
+
+  const [occupancy, setOccupancy] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
 
   useEffect(() => {
     loadVenues();
@@ -49,6 +63,41 @@ export default function AdminScreen() {
     loadVenues();
   }
 
+  useEffect(() => {
+    if (selectedVenue) {
+      loadOccupancy();
+    }
+  }, [selectedVenue]);
+
+  async function loadOccupancy() {
+    const venueId = selectedVenue.id;
+
+    const qRef = query(
+      collection(db, "checkins"),
+      where("venueId", "==", venueId),
+      orderBy("timestamp", "desc")
+    );
+
+    const snap = await getDocs(qRef);
+    const events = snap.docs.map(doc => doc.data());
+
+    let countIn = 0;
+    let countOut = 0;
+
+    events.forEach(e => {
+      if (e.type === "in") countIn++;
+      if (e.type === "out") countOut++;
+    });
+
+    const occ = countIn - countOut;
+    setOccupancy(occ);
+
+    if (occ >= selectedVenue.capacity) setShowWarning(true);
+    else setShowWarning(false);
+  }
+
+  const progressPercent = selectedVenue ? occupancy / selectedVenue.capacity : 0;
+
   const renderVenue = ({ item }) => (
     <TouchableOpacity
       onPress={() => {
@@ -59,7 +108,7 @@ export default function AdminScreen() {
         padding: 12,
         borderBottomWidth: 1,
         borderColor: "#ccc",
-        backgroundColor: selectedVenue?.id === item.id ? "#e6f0ff" : "white"
+        backgroundColor: selectedVenue?.id === item.id ? "#e6f0ff" : "white",
       }}
     >
       <Text style={{ fontWeight: "bold" }}>{item.name}</Text>
@@ -69,6 +118,7 @@ export default function AdminScreen() {
 
   return (
     <View style={{ flex: 1, padding: 20 }}>
+
       <Text style={{ fontSize: 24, marginBottom: 10 }}>Create Venue</Text>
 
       <TextInput
@@ -105,6 +155,7 @@ export default function AdminScreen() {
 
       {selectedVenue && (
         <View style={{ marginTop: 20 }}>
+
           <Text style={{ fontSize: 20, marginBottom: 10 }}>
             Edit Capacity for {selectedVenue.name}
           </Text>
@@ -118,6 +169,28 @@ export default function AdminScreen() {
           />
 
           <Button title="Update Capacity" onPress={updateCapacity} />
+
+          <View style={{ marginTop: 30, alignItems: "center" }}>
+            <Text style={{ fontSize: 22, marginBottom: 10 }}>Current Occupancy</Text>
+
+            <Progress.Bar
+              progress={progressPercent}
+              width={250}
+              height={30}
+              color={progressPercent >= 1 ? "red" : "green"}
+            />
+
+            <Text style={{ fontSize: 20, marginTop: 10 }}>
+              {occupancy} / {selectedVenue.capacity}
+            </Text>
+
+            {showWarning && (
+              <Text style={{ color: "red", fontSize: 18, marginTop: 10 }}>
+                ⚠ Venue at full capacity!
+              </Text>
+            )}
+          </View>
+
         </View>
       )}
     </View>
