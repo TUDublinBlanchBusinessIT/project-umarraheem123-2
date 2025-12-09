@@ -27,6 +27,7 @@ export default function HistoryScreen() {
   function computePeakHour(events) {
     const hourly = {};
     events.forEach(e => {
+      if (!e.timestamp?.toDate) return;
       const hour = e.timestamp.toDate().getHours();
       hourly[hour] = (hourly[hour] || 0) + 1;
     });
@@ -58,7 +59,10 @@ export default function HistoryScreen() {
       );
 
       const snapshot = await getDocs(qRef);
-      const events = snapshot.docs.map(d => d.data());
+
+      const events = snapshot.docs
+        .map(d => d.data())
+        .filter(e => e.timestamp?.toDate);
 
       const totals = {};
       events.forEach(e => {
@@ -72,15 +76,14 @@ export default function HistoryScreen() {
       }));
 
       setDailyTotals(formatted);
+      setTotalVisits(events.length);
 
       const peak = computePeakHour(events);
       setPeakHour(peak);
 
-      setTotalVisits(events.length);
-
       if (peak.hour !== null) {
         if (peak.hour >= 17 && peak.hour <= 19) {
-          setSuggestion("Peak hour is around 17:00–18:00. Consider promoting off-peak hours such as 9:00–11:00.");
+          setSuggestion("Peak hour is around 17:00–18:00. Consider promoting off-peak hours like 9:00–11:00.");
         } else if (peak.hour >= 8 && peak.hour <= 11) {
           setSuggestion("Mornings are busy. Consider spacing sessions or promoting afternoon hours.");
         } else {
@@ -89,7 +92,7 @@ export default function HistoryScreen() {
       }
 
     } catch (err) {
-      console.log("Error:", err);
+      console.log("Error loading daily totals:", err);
     }
   }
 
@@ -103,14 +106,21 @@ export default function HistoryScreen() {
       );
 
       const snap = await getDocs(qRef);
-      const list = snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+
+      const list = snap.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          safeTimestamp: data.timestamp?.toDate
+            ? data.timestamp.toDate().toLocaleString()
+            : "Unknown time"
+        };
+      });
 
       setRecentEvents(list);
     } catch (err) {
-      console.log("Error:", err);
+      console.log("Error loading recent events:", err);
     }
   }
 
@@ -126,13 +136,12 @@ export default function HistoryScreen() {
       <Text style={{ fontWeight: "bold" }}>
         {item.type === "in" ? "Check In" : "Check Out"}
       </Text>
-      <Text>{item.timestamp?.toDate().toLocaleString()}</Text>
+      <Text>{item.safeTimestamp}</Text>
     </View>
   );
 
   return (
     <View style={{ flex: 1, padding: 20 }}>
-
       <Text style={{ fontSize: 26, fontWeight: "bold", marginBottom: 12 }}>
         Last 7 Days
       </Text>
@@ -170,7 +179,6 @@ export default function HistoryScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderEvent}
       />
-
     </View>
   );
 }

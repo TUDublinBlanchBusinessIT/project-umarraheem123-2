@@ -14,13 +14,11 @@ import {
 import * as Progress from "react-native-progress";
 
 export default function AdminScreen() {
-
   const [name, setName] = useState("");
   const [capacity, setCapacity] = useState("");
   const [notes, setNotes] = useState("");
   const [venues, setVenues] = useState([]);
   const [selectedVenue, setSelectedVenue] = useState(null);
-
   const [occupancy, setOccupancy] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
 
@@ -47,7 +45,6 @@ export default function AdminScreen() {
     setName("");
     setCapacity("");
     setNotes("");
-
     loadVenues();
   }
 
@@ -64,9 +61,7 @@ export default function AdminScreen() {
   }
 
   useEffect(() => {
-    if (selectedVenue) {
-      loadOccupancy();
-    }
+    if (selectedVenue) loadOccupancy();
   }, [selectedVenue]);
 
   async function loadOccupancy() {
@@ -79,7 +74,10 @@ export default function AdminScreen() {
     );
 
     const snap = await getDocs(qRef);
-    const events = snap.docs.map(doc => doc.data());
+
+    const events = snap.docs
+      .map(doc => doc.data())
+      .filter(e => e.timestamp?.toDate);
 
     let countIn = 0;
     let countOut = 0;
@@ -91,12 +89,14 @@ export default function AdminScreen() {
 
     const occ = countIn - countOut;
     setOccupancy(occ);
-
-    if (occ >= selectedVenue.capacity) setShowWarning(true);
-    else setShowWarning(false);
+    setShowWarning(occ >= selectedVenue.capacity);
   }
 
-  const progressPercent = selectedVenue ? occupancy / selectedVenue.capacity : 0;
+  const progressPercent = selectedVenue
+    ? selectedVenue.capacity > 0
+      ? occupancy / selectedVenue.capacity
+      : 0
+    : 0;
 
   const renderVenue = ({ item }) => (
     <TouchableOpacity
@@ -118,7 +118,6 @@ export default function AdminScreen() {
 
   return (
     <View style={{ flex: 1, padding: 20 }}>
-
       <Text style={{ fontSize: 24, marginBottom: 10 }}>Create Venue</Text>
 
       <TextInput
@@ -155,7 +154,6 @@ export default function AdminScreen() {
 
       {selectedVenue && (
         <View style={{ marginTop: 20 }}>
-
           <Text style={{ fontSize: 20, marginBottom: 10 }}>
             Edit Capacity for {selectedVenue.name}
           </Text>
@@ -177,7 +175,6 @@ export default function AdminScreen() {
               progress={progressPercent}
               width={250}
               height={30}
-              color={progressPercent >= 1 ? "red" : "green"}
             />
 
             <Text style={{ fontSize: 20, marginTop: 10 }}>
@@ -190,7 +187,6 @@ export default function AdminScreen() {
               </Text>
             )}
           </View>
-
         </View>
       )}
     </View>

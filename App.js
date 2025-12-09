@@ -1,4 +1,6 @@
 import React from 'react';
+console.log("App.js loaded");
+
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 

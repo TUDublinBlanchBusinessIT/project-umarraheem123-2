@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "my-app",
+    "slug": "my-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "entryPoint": "./index.js",
+    "platforms": ["ios", "android"],
+    "sdkVersion": "54.0.0",
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": ["**/*"]
+  }
+}

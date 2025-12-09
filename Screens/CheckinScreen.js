@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, Button, Alert } from "react-native";
 import { serverTimestamp } from "firebase/firestore";
-import { addCheckin, getCheckins } from "../services/firebaseService";
+const addCheckin = async () => ({ id: "test" });
+const getCheckins = async () => [];
+
+//import { addCheckin, getCheckins } from ../services/firebaseService-tempe";
 
 export default function CheckInScreen() {
   const venueId = "gym1";
@@ -40,7 +43,7 @@ export default function CheckInScreen() {
         venueId,
         type,
         timestamp: serverTimestamp(),
-        method: "manual",
+        method: "manual"
       });
 
       console.log("Saved:", docRef.id);
